@@ -4,7 +4,7 @@ using System.Runtime.Serialization;
 namespace R_P_S
 {
     [Serializable]
-    internal class NoSuchStrategyError : Exception
+    public class NoSuchStrategyError : Exception
     {
         public NoSuchStrategyError()
         {

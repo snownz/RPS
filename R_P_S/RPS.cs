@@ -35,25 +35,36 @@ namespace R_P_S
         }
         private StrategyModel[] toSinglePlay(string data)
         {
+            JArray list;
             try
             {
-                var list = JArray.Parse(data);
-                if (list.Any(x => !_validateTuple(x.Value<object>().ToString())))
-                {
-                    throw new InvalidInputError();
-                }
-
-                return list
-                    .Select(x => new StrategyModel
-                    {
-                        Player = x[0].Value<string>(),
-                        Choice = (Played)Enum.Parse(typeof(Played), x[1].Value<string>())
-                    }).ToArray();
+                list = JArray.Parse(data);                
             }
             catch (Exception)
             {
                 throw new InvalidInputError();
-            }            
+            }
+
+            if (list.Any(x => !_validateTuple(x.Value<object>().ToString())))
+            {
+                throw new InvalidInputError();
+            }
+
+            var _l = list
+                .Select(x => new StrategyModel
+                {
+                    Player = x[0].Value<string>(),
+                    Choice = (Played)Enum.Parse(typeof(Played), x[1].Value<string>())
+                }).ToArray();
+
+            if (!_verifyLength(_l))
+            {
+                throw new NoSuchStrategyError();
+            }
+            else
+            {
+                return _l;
+            }
         }
         private Group[] toMultiplePlay(string data)
         {
@@ -94,10 +105,10 @@ namespace R_P_S
                     }
                 }
 
-                kLenght = (node.Keys.Count() / 2) + (node.Keys.Count() % 2);
+                kLenght = (k.Count() / 2) + (k.Count() % 2);
                 var aux = new Key[kLenght];
 
-                for (int i = 0; i < kLenght - ((kLenght % 2)-1); i++)
+                for (int i = 0; i < kLenght - ((k.Count() % 2)); i++)
                 {
                     aux[i] = new Key
                     {
@@ -110,7 +121,7 @@ namespace R_P_S
                 {
                     aux[kLenght - 1] = new Key
                     {
-                        Player1 = k[k.Count() - 1].Winner
+                        Player0 = k[k.Count() - 1].Winner
                     };                
                 }
 
@@ -122,11 +133,7 @@ namespace R_P_S
 
         public string rps_game_winner(string data)
         {
-            var model = toSinglePlay(data);
-            if (!_verifyLength(model))
-            {
-                throw new NoSuchStrategyError();
-            }
+            var model = toSinglePlay(data);           
             return _compare(model[0], model[1]).Player;
         }
         public string rps_tournament_winner(string data)
