@@ -11,7 +11,7 @@ namespace R_P_S
 {
     public class RPS
     {
-        private delegate Group AsyncMethodCaller(Group node);
+        private delegate void AsyncMethodCaller(Group node, ref Key[] keys, int index);
 
         private bool _validateTuple(string str)
         {
@@ -130,6 +130,49 @@ namespace R_P_S
 
             return k[0];
         }
+        private void _async_rps_tournament_winner(Group node, ref Key[] keys, int index)
+        {
+            int kLenght = 0;
+            var k = node.Keys;
+            do
+            {
+                foreach (var item in k)
+                {
+                    if (item.Player1 != null)
+                    {
+                        item.Winner = _compare(item.Player0, item.Player1);
+                    }
+                    else
+                    {
+                        item.Winner = item.Player0;
+                    }
+                }
+
+                kLenght = (k.Count() / 2) + (k.Count() % 2);
+                var aux = new Key[kLenght];
+
+                for (int i = 0; i < kLenght - ((k.Count() % 2)); i++)
+                {
+                    aux[i] = new Key
+                    {
+                        Player0 = k[i * 2].Winner,
+                        Player1 = k[(i * 2) + 1].Winner
+                    };
+                }
+
+                if (aux[kLenght - 1] == null)
+                {
+                    aux[kLenght - 1] = new Key
+                    {
+                        Player0 = k[k.Count() - 1].Winner
+                    };
+                }
+
+                k = aux;
+            } while (kLenght > 1);
+
+            keys[index] = k[0];
+        }
 
         public string rps_game_winner(string data)
         {
@@ -138,12 +181,18 @@ namespace R_P_S
         }
         public string rps_tournament_winner(string data)
         {
+            AsyncMethodCaller caller = new AsyncMethodCaller(_async_rps_tournament_winner);
+
             var model = toMultiplePlay(data);
             var keys = new Key[model.Count()];
+            var thread = new object[model.Count()];
+  
             for (int i = 0; i < model.Count(); i++)
             {
-                keys[i] = _rps_tournament_winner(model[i]);
+                thread[i] = caller.BeginInvoke(model[i], ref keys, i, null, null);
             }
+            thread.ToList().ForEach(x => (x as IAsyncResult).AsyncWaitHandle.WaitOne());
+
             var g = new Group()
             {
                 Keys = keys
